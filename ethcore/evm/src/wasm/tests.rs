@@ -85,7 +85,7 @@ fn logger() {
 	};
 
 	println!("ext.store: {:?}", ext.store);
-	assert_eq!(gas_left, U256::from(99581));
+	assert_eq!(gas_left, U256::from(99590));
 	let address_val: H256 = address.into();
 	assert_eq!(
 		ext.store.get(&"0100000000000000000000000000000000000000000000000000000000000000".parse().unwrap()).expect("storage key to exist"),
@@ -136,7 +136,7 @@ fn identity() {
 		}
 	};
 
-	assert_eq!(gas_left, U256::from(99_689));
+	assert_eq!(gas_left, U256::from(99_687));
 
 	assert_eq!(
 		Address::from_slice(&result),
@@ -170,7 +170,7 @@ fn dispersion() {
 		}
 	};
 
-	assert_eq!(gas_left, U256::from(99_402));
+	assert_eq!(gas_left, U256::from(99_423));
 
 	assert_eq!(
 		result,
@@ -199,7 +199,7 @@ fn suicide_not() {
 		}
 	};
 
-	assert_eq!(gas_left, U256::from(99_703));
+	assert_eq!(gas_left, U256::from(99_656));
 
 	assert_eq!(
 		result,
@@ -233,12 +233,14 @@ fn suicide() {
 		}
 	};
 
-	assert_eq!(gas_left, U256::from(99_747));
+	assert_eq!(gas_left, U256::from(99_740));
 	assert!(ext.suicides.contains(&refund));
 }
 
 #[test]
 fn create() {
+	::ethcore_logger::init_log();
+
 	let mut params = ActionParams::default();
 	params.gas = U256::from(100_000);
 	params.code = Some(Arc::new(load_sample!("creator.wasm")));
@@ -262,7 +264,7 @@ fn create() {
 	assert!(ext.calls.contains(
 		&FakeCall {
 			call_type: FakeCallType::Create,
-			gas: U256::from(99_778),
+			gas: U256::from(99_767),
 			sender_address: None,
 			receive_address: None,
 			value: Some(1_000_000_000.into()),
@@ -270,5 +272,5 @@ fn create() {
 			code_address: None,
 		}
 	));
-	assert_eq!(gas_left, U256::from(99_768));
+	assert_eq!(gas_left, U256::from(99_759));
 }
