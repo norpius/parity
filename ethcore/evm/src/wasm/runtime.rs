@@ -167,6 +167,44 @@ impl<'a> Runtime<'a> {
 		}
 	}
 
+	pub fn call(&mut self, context: interpreter::CallerContext)
+		-> Result<Option<interpreter::RuntimeValue>, interpreter::Error>
+	{
+		//
+		// method signature:
+		// fn ccall(
+		// 	address: *const u8, 
+		// 	val_ptr: *const u8, 
+		// 	input_ptr: *const u8, 
+		// 	input_len: u32, 
+		// 	result_ptr: *mut u8, 
+		// 	result_len: u32,
+		// ) -> i32
+
+		trace!(target: "wasm", "runtime: call contract");
+		let mut context = context;
+		let result_alloc_len = context.value_stack.pop_as::<i32>()? as u32;
+		trace!(target: "wasm", "    result_len: {:?}", result_ptr);
+
+		let result_ptr = context.value_stack.pop_as::<i32>()? as u32;
+		trace!(target: "wasm", "    result_ptr: {:?}", result_ptr);
+
+		let input_len = context.value_stack.pop_as::<i32>()? as u32;
+		trace!(target: "wasm", "     input_len: {:?}", input_len);
+
+		let input_ptr = context.value_stack.pop_as::<i32>()? as u32;
+		trace!(target: "wasm", "     input_ptr: {:?}", input_ptr);
+
+		let val = self.pop_u256(&mut context)?;
+		trace!(target: "wasm", "           val: {:?}", val_ptr);
+
+		let address = self.pop_address(&mut context)?;
+		trace!(target: "wasm", "       address: {:?}", address);
+
+		Ok(None)
+	}
+		
+
 	/// Allocate memory using the wasm stack params
 	pub fn malloc(&mut self, context: interpreter::CallerContext)
 		-> Result<Option<interpreter::RuntimeValue>, interpreter::Error>
@@ -337,6 +375,15 @@ impl<'a> interpreter::UserFunctionExecutor for Runtime<'a> {
 			},
 			"_create" => {
 				self.create(context)
+			},
+			"_ccall" => {
+				self.call(context)
+			},
+			"_dcall" => {
+				self.call_code(context)
+			},
+			"_scall" => {
+				self.static_call(context)
 			},
 			"_debug" => {
 				self.debug_log(context)

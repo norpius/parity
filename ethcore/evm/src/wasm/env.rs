@@ -62,6 +62,21 @@ pub const SIGNATURES: &'static [UserFunctionDescriptor] = &[
 		Some(I32),
 	),
 	Static(
+		"_ccall",
+		&[I32; 6],
+		Some(I32),
+	),
+	Static(
+		"_dcall",
+		&[I32; 5],
+		Some(I32),
+	),
+	Static(
+		"_scall",
+		&[I32; 5],
+		Some(I32),
+	),		
+	Static(
 		"abort",
 		&[I32],
 		None,
