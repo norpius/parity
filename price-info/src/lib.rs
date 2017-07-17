@@ -14,31 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Parity.  If not, see <http://www.gnu.org/licenses/>.
 
-use rand::os::OsRng;
-use super::{Generator, KeyPair, SECP256K1};
+#![warn(missing_docs)]
 
-/// Randomly generates new keypair, instantiating the RNG each time.
-pub struct Random;
+//! A simple client to get the current ETH price using an external API.
 
-impl Generator for Random {
-	type Error = ::std::io::Error;
+extern crate futures;
+extern crate serde_json;
 
-	fn generate(self) -> Result<KeyPair, Self::Error> {
-		let mut rng = OsRng::new()?;
-		match rng.generate() {
-			Ok(pair) => Ok(pair),
-			Err(void) => match void {}, // LLVM unreachable
-		}
-	}
-}
+#[macro_use]
+extern crate log;
 
-impl<'a> Generator for &'a mut OsRng {
-	type Error = ::Void;
+pub extern crate fetch;
 
-	fn generate(self) -> Result<KeyPair, Self::Error> {
-		let (sec, publ) = SECP256K1.generate_keypair(self)
-			.expect("context always created with full capabilities; qed");
+mod price_info;
 
-		Ok(KeyPair::from_keypair(sec, publ))
-	}
-}
+pub use price_info::*;
