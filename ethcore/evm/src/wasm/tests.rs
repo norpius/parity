@@ -21,6 +21,7 @@ use super::WasmInterpreter;
 use evm::{self, Evm, GasLeft};
 use action_params::{ActionParams, ActionValue};
 use util::{U256, H256, Address};
+use byteorder::{LittleEndian, ByteOrder};
 
 macro_rules! load_sample {
 	($name: expr) => {
@@ -280,7 +281,12 @@ fn create() {
 fn call() {
 	::ethcore_logger::init_log();
 
+	let sender: Address = "01030507090b0d0f11131517191b1d1f21232527".parse().unwrap();
+	let receiver: Address = "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6".parse().unwrap();
+
 	let mut params = ActionParams::default();
+	params.sender = sender.clone();
+	params.address = receiver.clone();
 	params.gas = U256::from(100_000);
 	params.code = Some(Arc::new(load_sample!("caller.wasm")));
 	params.data = Some(Vec::new());
@@ -300,14 +306,18 @@ fn call() {
 	trace!(target: "wasm", "fake_calls: {:?}", &ext.calls);
 	assert!(ext.calls.contains(
 		&FakeCall {
-			call_type: FakeCallType::Create,
-			gas: U256::from(99_767),
-			sender_address: None,
-			receive_address: None,
-			value: Some(1_000_000_000.into()),
-			data: vec![0u8, 2, 4, 8, 16, 32, 64, 128],
-			code_address: None,
+			call_type: FakeCallType::Call,
+			gas: U256::from(99_061),
+			sender_address: Some(sender),
+			receive_address: Some(receiver),
+			value: None,
+			data: vec![1u8, 2, 3, 5, 7, 11],
+			code_address: Some("0d13710000000000000000000000000000000000".parse().unwrap()),
 		}
 	));
-	assert_eq!(gas_left, U256::from(99_759));
+	assert_eq!(gas_left, U256::from(94196));
+
+	// siphash result
+	let res = LittleEndian::read_u32(&result[..]);
+	assert_eq!(res, 4198595614);
 }

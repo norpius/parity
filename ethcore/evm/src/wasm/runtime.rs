@@ -25,6 +25,7 @@ use ext;
 use parity_wasm::interpreter;
 use util::{Address, H256, U256};
 
+use call_type::CallType;
 use super::ptr::{WasmPtr, Error as PtrError};
 use super::call_args::CallArgs;
 
@@ -57,6 +58,20 @@ impl From<PtrError> for Error {
 	}
 }
 
+pub struct RuntimeContext {
+	address: Address,
+	sender: Address,
+}
+
+impl RuntimeContext {
+	pub fn new(address: Address, sender: Address) -> Self {
+		RuntimeContext {
+			address: address,
+			sender: sender,
+		}
+	}
+}
+
 /// Runtime enviroment data for wasm contract execution
 pub struct Runtime<'a> {
 	gas_counter: u64,
@@ -64,6 +79,7 @@ pub struct Runtime<'a> {
 	dynamic_top: u32,
 	ext: &'a mut ext::Ext,
 	memory: Arc<interpreter::MemoryInstance>,
+	context: RuntimeContext,
 }
 
 impl<'a> Runtime<'a> {
@@ -73,6 +89,7 @@ impl<'a> Runtime<'a> {
 		memory: Arc<interpreter::MemoryInstance>,
 		stack_space: u32,
 		gas_limit: u64,
+		context: RuntimeContext,
 	) -> Runtime<'b> {
 		Runtime {
 			gas_counter: 0,
@@ -80,6 +97,7 @@ impl<'a> Runtime<'a> {
 			dynamic_top: stack_space,
 			memory: memory,
 			ext: ext,
+			context: context,
 		}
 	}
 
@@ -234,7 +252,35 @@ impl<'a> Runtime<'a> {
 		let address = self.pop_address(&mut context)?;
 		trace!(target: "wasm", "       address: {:?}", address);
 
-		Ok(Some(0i32.into()))
+		let mut result = Vec::with_capacity(result_alloc_len as usize);
+		result.resize(result_alloc_len as usize, 0);
+		let gas = self.gas_left()
+			.map_err(|_| interpreter::Error::Trap("Gas state error".to_owned()))?
+			.into();
+		// todo: optimize to use memory views once it's in
+		let payload = self.memory.get(input_ptr, input_len as usize)?;
+
+		let call_result = self.ext.call(
+			&gas,
+			&self.context.sender,
+			&self.context.address,
+			None,
+			&payload,
+			&address,
+			&mut result[..],
+			CallType::CallCode,
+		);
+
+		match call_result {
+			ext::MessageCallResult::Success(gas_left, _) => {
+				self.gas_counter = self.gas_limit - gas_left.low_u64();
+				self.memory.set(result_ptr, &result)?;
+				Ok(Some(0i32.into()))
+			},
+			ext::MessageCallResult::Failed  => {
+				Ok(Some((-1i32).into()))
+			}
+		}
 	}		
 
 	/// Allocate memory using the wasm stack params
