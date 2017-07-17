@@ -288,14 +288,12 @@ fn call() {
 
 	let mut ext = FakeExt::new();
 
-	let gas_left = {
+	let (gas_left, result) = {
 		let mut interpreter = wasm_interpreter();
 		let result = interpreter.exec(params, &mut ext).expect("Interpreter to execute without any errors");
 		match result {
-			GasLeft::Known(gas) => gas,
-			GasLeft::NeedsReturn { .. } => {
-				panic!("Create contract should not return anthing because ext always fails on creation");
-			},
+			GasLeft::Known(_) => { panic!("Call test should return payload"); },
+			GasLeft::NeedsReturn { gas_left: gas, data: result, apply_state: _apply } => (gas, result.to_vec()),
 		}
 	};
 
