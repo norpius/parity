@@ -71,11 +71,11 @@ pub const SIGNATURES: &'static [UserFunctionDescriptor] = &[
 		&[I32; 5],
 		Some(I32),
 	),
-	// Static(
-	// 	"_scall",
-	// 	&[I32; 5],
-	// 	Some(I32),
-	// ),
+	Static(
+		"_scall",
+		&[I32; 5],
+		Some(I32),
+	),
 	Static(
 		"abort",
 		&[I32],
@@ -94,6 +94,11 @@ pub const SIGNATURES: &'static [UserFunctionDescriptor] = &[
 	Static(
 		"_emscripten_memcpy_big",
 		&[I32; 3],
+		Some(I32),
+	),
+	Static(
+		"___syscall6",
+		&[I32; 2],
 		Some(I32),
 	)
 ];

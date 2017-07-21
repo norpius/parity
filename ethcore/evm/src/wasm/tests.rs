@@ -301,7 +301,7 @@ fn call_code() {
 			GasLeft::Known(_) => { panic!("Call test should return payload"); },
 			GasLeft::NeedsReturn { gas_left: gas, data: result, apply_state: _apply } => (gas, result.to_vec()),
 		}
-	};
+	}; 
 
 	trace!(target: "wasm", "fake_calls: {:?}", &ext.calls);
 	assert!(ext.calls.contains(
