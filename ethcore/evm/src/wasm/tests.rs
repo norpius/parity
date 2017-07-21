@@ -278,7 +278,7 @@ fn create() {
 
 
 #[test]
-fn call() {
+fn call_code() {
 	::ethcore_logger::init_log();
 
 	let sender: Address = "01030507090b0d0f11131517191b1d1f21232527".parse().unwrap();
@@ -288,7 +288,7 @@ fn call() {
 	params.sender = sender.clone();
 	params.address = receiver.clone();
 	params.gas = U256::from(100_000);
-	params.code = Some(Arc::new(load_sample!("caller.wasm")));
+	params.code = Some(Arc::new(load_sample!("call_code.wasm")));
 	params.data = Some(Vec::new());
 	params.value = ActionValue::transfer(1_000_000_000);
 
@@ -320,4 +320,47 @@ fn call() {
 	// siphash result
 	let res = LittleEndian::read_u32(&result[..]);
 	assert_eq!(res, 4198595614);
+}
+
+#[test]
+fn call_static() {
+	let sender: Address = "0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6".parse().unwrap();
+	let receiver: Address = "01030507090b0d0f11131517191b1d1f21232527".parse().unwrap();
+
+	let mut params = ActionParams::default();
+	params.sender = sender.clone();
+	params.address = receiver.clone();
+	params.gas = U256::from(100_000);
+	params.code = Some(Arc::new(load_sample!("call_static.wasm")));
+	params.data = Some(Vec::new());
+	params.value = ActionValue::transfer(1_000_000_000);
+
+	let mut ext = FakeExt::new();
+
+	let (gas_left, result) = {
+		let mut interpreter = wasm_interpreter();
+		let result = interpreter.exec(params, &mut ext).expect("Interpreter to execute without any errors");
+		match result {
+			GasLeft::Known(_) => { panic!("Static call test should return payload"); },
+			GasLeft::NeedsReturn { gas_left: gas, data: result, apply_state: _apply } => (gas, result.to_vec()),
+		}
+	};
+
+	trace!(target: "wasm", "fake_calls: {:?}", &ext.calls);
+	assert!(ext.calls.contains(
+		&FakeCall {
+			call_type: FakeCallType::Call,
+			gas: U256::from(99_061),
+			sender_address: Some(sender),
+			receive_address: Some(receiver),
+			value: None,
+			data: vec![1u8, 2, 3, 5, 7, 11],
+			code_address: Some("0d13710000000000000000000000000000000000".parse().unwrap()),
+		}
+	));
+	assert_eq!(gas_left, U256::from(94196));
+
+	// siphash result
+	let res = LittleEndian::read_u32(&result[..]);
+	assert_eq!(res, 4198595614);	
 }
